@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Riyadhoh Quest - Monark Subuh RPG</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sl: {
+                            bg: '#030712',
+                            card: '#0B132B',
+                            cardHover: '#1C2541',
+                            border: '#1E293B',
+                            neonGreen: '#10B981',
+                            neonBlue: '#3B82F6',
+                            shadowPurple: '#8B5CF6',
+                            gold: '#F59E0B',
+                            rose: '#F43F5E'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        arabic: ['Amiri', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Custom Style CSS File -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-sl-bg text-slate-100 min-h-screen flex flex-col relative pb-24 md:pb-8 select-none overflow-x-hidden">
+
+    <!-- AMBIENT PARTICLES CANVAS BACKGROUND -->
+    <canvas id="bgParticleCanvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- SYSTEM TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- TOP HUD STATUS BAR (RPG HEADER) -->
+    <header class="sticky top-0 z-40 bg-sl-bg/95 backdrop-blur-xl border-b border-sl-border/80 shadow-2xl">
+        <div class="max-w-7xl mx-auto px-3 py-2.5">
+            <div class="flex items-center justify-between gap-2">
+                
+                <!-- Player Avatar & Rank -->
+                <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchTab('profile')">
+                    <div class="relative">
+                        <div class="w-11 h-11 rounded-xl overflow-hidden border-2 border-sl-neonGreen shadow-[0_0_12px_rgba(16,185,129,0.4)]">
+                            <img id="hudAvatarImg" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Player Avatar" class="w-full h-full object-cover">
+                        </div>
+                        <span id="hudLevelBadge" class="absolute -bottom-1 -right-1 bg-sl-neonGreen text-slate-950 font-black text-[9px] px-1 rounded border border-slate-950">
+                            Lv.1
+                        </span>
+                    </div>
+
+                    <div class="hidden sm:block">
+                        <div class="flex items-center gap-1.5">
+                            <h2 id="hudPlayerName" class="font-black text-xs md:text-sm text-emerald-300 truncate max-w-[120px]">
+                                Player
+                            </h2>
+                            <span id="hudRankTitle" class="text-[8px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded font-black">
+                                E-RANK
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                            <span id="hudTitleText">Monark Subuh Pemula</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Currency, Mana, Clock & XP HUD Bar -->
+                <div class="flex items-center gap-1.5 sm:gap-3">
+                    
+                    <!-- Live Digital Clock -->
+                    <div class="hidden md:flex flex-col items-end bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800 text-right">
+                        <span id="hudLiveClock" class="text-xs font-black text-emerald-400 font-mono">00:00:00</span>
+                        <span class="text-[8px] text-slate-400 font-bold">Waktu Sistem</span>
+                    </div>
+
+                    <!-- Mana MP Bar -->
+                    <div class="hidden lg:block w-28 bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
+                        <div class="flex justify-between items-center text-[9px] font-black mb-1">
+                            <span class="text-sky-400"><i class="fa-solid fa-bolt mr-1"></i>MP</span>
+                            <span id="hudMpText" class="text-slate-300">100/100</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div id="hudMpBar" class="bg-gradient-to-r from-sky-500 to-blue-600 h-full transition-all duration-300" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- XP Bar (Desktop/Tablet) -->
+                    <div class="hidden lg:block w-32 bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
+                        <div class="flex justify-between items-center text-[9px] font-black mb-1">
+                            <span class="text-emerald-400"><i class="fa-solid fa-star mr-1"></i>XP</span>
+                            <span id="hudXpText" class="text-slate-300">0/250</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div id="hudXpBar" class="bg-gradient-to-r from-emerald-500 to-amber-400 h-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Koin Hasanah -->
+                    <div class="bg-slate-950/90 px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-coins text-amber-400 text-xs shadow-gold"></i>
+                        <div>
+                            <div class="text-[7px] text-slate-400 font-extrabold uppercase leading-none">Koin</div>
+                            <div id="hudCoins" class="font-black text-amber-400 text-xs">100</div>
+                        </div>
+                    </div>
+
+                    <!-- Permata Taqwa -->
+                    <div class="bg-slate-950/90 px-2.5 py-1.5 rounded-xl border border-purple-500/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-gem text-purple-400 text-xs"></i>
+                        <div>
+                            <div class="text-[7px] text-slate-400 font-extrabold uppercase leading-none">Permata</div>
+                            <div id="hudGems" class="font-black text-purple-400 text-xs">5</div>
+                        </div>
+                    </div>
+
+                    <!-- Streak -->
+                    <div class="bg-slate-950/90 px-2.5 py-1.5 rounded-xl border border-orange-500/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-fire text-orange-400 text-xs animate-pulse"></i>
+                        <div>
+                            <div class="text-[7px] text-slate-400 font-extrabold uppercase leading-none">Streak</div>
+                            <div id="hudStreak" class="font-black text-orange-400 text-xs">1H</div>
+                        </div>
+                    </div>
+
+                    <!-- Sound FX Toggle -->
+                    <button onclick="toggleAudio()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-emerald-400 hover:text-amber-300 transition">
+                        <i id="audioIcon" class="fa-solid fa-volume-high text-xs"></i>
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- DESKTOP TOP NAV BAR -->
+    <nav class="hidden md:block bg-sl-card/60 border-b border-sl-border backdrop-blur-md relative z-10">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-center space-x-2 py-2">
+                <button onclick="switchTab('dashboard')" id="dtab-dashboard" class="dnav-btn active">
+                    <i class="fa-solid fa-house"></i> Markas
+                </button>
+                <button onclick="switchTab('quests')" id="dtab-quests" class="dnav-btn">
+                    <i class="fa-solid fa-scroll text-emerald-400"></i> Papan Misi
+                </button>
+                <button onclick="switchTab('saga')" id="dtab-saga" class="dnav-btn">
+                    <i class="fa-solid fa-dungeon text-purple-400"></i> Gate Dungeon
+                </button>
+                <button onclick="switchTab('boss')" id="dtab-boss" class="dnav-btn">
+                    <i class="fa-solid fa-dragon text-rose-400"></i> Boss Battle
+                </button>
+                <button onclick="switchTab('shadows')" id="dtab-shadows" class="dnav-btn">
+                    <i class="fa-solid fa-ghost text-sky-400"></i> Pasukan Bayangan
+                </button>
+                <button onclick="switchTab('village')" id="dtab-village" class="dnav-btn">
+                    <i class="fa-solid fa-mosque text-amber-400"></i> Kota Masjid
+                </button>
+                <button onclick="switchTab('tasbih')" id="dtab-tasbih" class="dnav-btn">
+                    <i class="fa-solid fa-hands-praying text-sky-400"></i> Tasbih RPG
+                </button>
+                <button onclick="switchTab('inventory')" id="dtab-inventory" class="dnav-btn">
+                    <i class="fa-solid fa-box-archive text-indigo-400"></i> Inventori
+                </button>
+                <button onclick="switchTab('profile')" id="dtab-profile" class="dnav-btn">
+                    <i class="fa-solid fa-user-gear text-amber-300"></i> Status
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN GAME CONTAINER -->
+    <main class="max-w-7xl mx-auto px-3 py-4 flex-1 w-full relative z-10">
+
+        <!-- TAB 1: DASHBOARD / MARKAS MONARK -->
+        <section id="content-dashboard" class="tab-content space-y-5">
+            
+            <!-- Hero Solo Leveling Banner -->
+            <div class="relative rounded-3xl overflow-hidden p-5 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-2 border-emerald-500/40 bg-gradient-to-r from-slate-950 via-sl-card to-slate-950">
+                <img src="https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=80" alt="Gate Background" class="absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-overlay">
+                
+                <div class="relative z-10 space-y-3 max-w-xl">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-300 text-[10px] font-black uppercase tracking-widest">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        Sistem Penyelamat Subuh Aktif
+                    </div>
+                    <h1 class="text-2xl md:text-4xl font-black tracking-tight text-white">
+                        Bangkitlah, <span id="dashWelcomeName" class="text-emerald-400">Monark Subuh</span>!
+                    </h1>
+                    <p class="text-xs md:text-sm text-slate-300 leading-relaxed italic">
+                        "Tidak ada shalat yang lebih berat bagi orang munafik selain Shalat Subuh dan Isya. Seandainya mereka mengetahui pahala di dalamnya, niscaya mereka mendatanginya walau dengan merangkak." (HR. Bukhari)
+                    </p>
+                    <div class="pt-2 flex flex-wrap gap-2.5">
+                        <button onclick="switchTab('quests')" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:brightness-110 text-slate-950 font-black text-xs rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition">
+                            <i class="fa-solid fa-bolt mr-1.5"></i> Eksekusi Misi Harian
+                        </button>
+                        <button onclick="claimDailyCheckin()" id="dailyCheckinBtn" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition">
+                            <i class="fa-solid fa-gift mr-1.5"></i> Daily Reward
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Stats Quick Box with Subuh Countdown Widget -->
+                <div class="relative z-10 w-full md:w-72 bg-slate-950/90 p-4 rounded-2xl border border-sl-border space-y-3 shrink-0">
+                    <div class="p-2.5 bg-emerald-950/50 rounded-xl border border-emerald-500/30 text-center">
+                        <div class="text-[9px] font-extrabold uppercase text-emerald-300">Countdown Subuh Berikutnya</div>
+                        <div id="subuhCountdownText" class="text-lg font-black font-mono text-amber-400 mt-0.5">00:00:00</div>
+                    </div>
+
+                    <h3 class="font-black text-xs text-amber-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Status Hari Ini</span>
+                        <i class="fa-solid fa-chart-simple"></i>
+                    </h3>
+                    <div class="space-y-2.5 text-xs">
+                        <div>
+                            <div class="flex justify-between text-slate-300 font-bold mb-1">
+                                <span>Misi Selesai:</span>
+                                <span id="dashQuestCount" class="text-emerald-400">0/9</span>
+                            </div>
+                            <div class="w-full bg-slate-900 rounded-full h-2 border border-slate-800 overflow-hidden">
+                                <div id="dashQuestBar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-300 pt-2 border-t border-slate-800">
+                            <span>Total Zikir:</span>
+                            <span id="dashZikrCount" class="font-black text-amber-400">0 Ketukan</span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-300">
+                            <span>Gate Terbuka:</span>
+                            <span id="dashGateRank" class="font-black text-purple-400">E-Rank Gate</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complete Feature Showcase Grid (3 Showcase Cards + Guild Leaderboard) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1: Quests -->
+                <div class="bg-sl-card rounded-2xl overflow-hidden border border-sl-border group hover:border-emerald-500/50 transition flex flex-col justify-between">
+                    <div class="h-32 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1542816417-0983c9c9ad53?auto=format&fit=crop&w=600&q=80" alt="Quran Quest" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-sl-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 text-[9px] font-black px-2.5 py-1 rounded-md">
+                            DAILY QUEST
+                        </span>
+                    </div>
+                    <div class="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-black text-sm text-white">Evaluasi Shalat & Amalan</h3>
+                            <p class="text-xs text-slate-400 mt-1">Selesaikan shalat Fardhu berjamaah, Tahajud, Dhuha, dan Tilawah.</p>
+                        </div>
+                        <button onclick="switchTab('quests')" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-emerald-300 font-bold text-xs rounded-xl border border-slate-700 transition">
+                            Buka Papan Misi <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 2: Gate Dungeon -->
+                <div class="bg-sl-card rounded-2xl overflow-hidden border border-sl-border group hover:border-purple-500/50 transition flex flex-col justify-between">
+                    <div class="h-32 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" alt="Red Gate" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-sl-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-purple-950/90 text-purple-300 border border-purple-500/40 text-[9px] font-black px-2.5 py-1 rounded-md">
+                            DUNGEON GATE
+                        </span>
+                    </div>
+                    <div class="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-black text-sm text-white">Peta Hijrah & Gate Spiritual</h3>
+                            <p class="text-xs text-slate-400 mt-1">Taklukkan Gate E-Rank hingga S-Rank untuk meningkatkan Rank Monark.</p>
+                        </div>
+                        <button onclick="switchTab('saga')" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-purple-300 font-bold text-xs rounded-xl border border-slate-700 transition">
+                            Memasuki Gate <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 3: Boss Arena -->
+                <div class="bg-sl-card rounded-2xl overflow-hidden border border-sl-border group hover:border-rose-500/50 transition flex flex-col justify-between">
+                    <div class="h-32 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=600&q=80" alt="Boss Fight" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-sl-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-rose-950/90 text-rose-300 border border-rose-500/40 text-[9px] font-black px-2.5 py-1 rounded-md">
+                            BOSS BATTLE
+                        </span>
+                    </div>
+                    <div class="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-black text-sm text-white">Lawan Monster Hawa Nafsu</h3>
+                            <p class="text-xs text-slate-400 mt-1">Turn-based battle interaktif mengikis Hawa Nafsu dan Rasa Malas.</p>
+                        </div>
+                        <button onclick="switchTab('boss')" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-rose-300 font-bold text-xs rounded-xl border border-slate-700 transition">
+                            Bertarung Sekarang <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 4: Guild Leaderboard Box -->
+                <div class="bg-sl-card p-4 rounded-2xl border border-sl-border space-y-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <h3 class="font-black text-xs text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-trophy"></i> Leaderboard Subuh
+                        </h3>
+                        <span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">Top Monark</span>
+                    </div>
+                    <div id="guildLeaderboardList" class="space-y-2 flex-1 overflow-y-auto max-h-48 no-scrollbar"></div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- TAB 2: PAPAN MISI (QUEST BOARD) -->
+        <section id="content-quests" class="tab-content hidden space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-black text-lg md:text-xl text-white flex items-center gap-2">
+                        <i class="fa-solid fa-scroll text-emerald-400"></i>
+                        <span>Papan Misi Harian Monark</span>
+                    </h2>
+                    <p class="text-xs text-slate-400">Centang ibadah nyata yang kamu lakukan hari ini untuk mendapatkan XP & Gold.</p>
+                </div>
+                <button onclick="showModal('customQuestModal')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2 self-start">
+                    <i class="fa-solid fa-plus-circle"></i> Tambah Misi Sunnah
+                </button>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-5">
+                <!-- Main Quests -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-emerald-500/30 pb-2">
+                        <h3 class="font-black text-xs text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-star text-amber-400"></i> Shalat Fardhu 5 Waktu
+                        </h3>
+                        <span id="mainQuestProgress" class="text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">0/5</span>
+                    </div>
+                    <div id="mainQuestsContainer" class="space-y-2.5"></div>
+                </div>
+
+                <!-- Sunnah Quests -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-amber-500/30 pb-2">
+                        <h3 class="font-black text-xs text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-gem text-amber-400"></i> Amalan Sunnah & Tilawah
+                        </h3>
+                        <span id="bonusQuestProgress" class="text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full">0/4</span>
+                    </div>
+                    <div id="bonusQuestsContainer" class="space-y-2.5"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: GATE SAGA MAP -->
+        <section id="content-saga" class="tab-content hidden space-y-5">
+            <div>
+                <h2 class="font-black text-lg md:text-xl text-white flex items-center gap-2">
+                    <i class="fa-solid fa-dungeon text-purple-400"></i>
+                    <span>Gate Dungeon & Peta Hijrah</span>
+                </h2>
+                <p class="text-xs text-slate-400">Taklukkan gate demi gate spiritual untuk membuka skill dan reputasi Monark.</p>
+            </div>
+
+            <div class="space-y-4" id="sagaGateContainer"></div>
+        </section>
+
+        <!-- TAB 4: BOSS BATTLE ARENA WITH FLOATING COMBAT TEXT -->
+        <section id="content-boss" class="tab-content hidden space-y-5">
+            <div id="bossArenaBox" class="bg-sl-card p-5 md:p-7 rounded-3xl border-2 border-rose-500/40 space-y-5 relative overflow-hidden transition-transform">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h2 class="font-black text-lg md:text-xl text-rose-400 flex items-center gap-2">
+                            <i class="fa-solid fa-dragon"></i> Arena Pertarungan Hawa Nafsu
+                        </h2>
+                        <p class="text-xs text-slate-400">Gunakan skill ibadahmu untuk mengikis HP Monster Malas Walhan.</p>
+                    </div>
+                    <span id="bossStageBadge" class="text-[10px] font-black bg-rose-950 text-rose-300 border border-rose-500/40 px-3 py-1 rounded-full">
+                        STAGE 1: IBLIS MALAS
+                    </span>
+                </div>
+
+                <!-- Boss Battle Screen with Floating Text Container -->
+                <div id="bossBattleCanvasScreen" class="relative bg-slate-950/80 rounded-2xl p-6 border border-slate-800 flex flex-col items-center justify-center min-h-[240px] text-center overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80" alt="Battle Arena" class="absolute inset-0 w-full h-full object-cover opacity-15">
+                    
+                    <div class="relative z-10 space-y-3">
+                        <div id="bossAvatar" class="w-20 h-20 mx-auto rounded-full bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center text-4xl text-rose-400 animate-bounce shadow-[0_0_25px_rgba(244,63,94,0.5)]">
+                            <i class="fa-solid fa-ghost"></i>
+                        </div>
+                        <h3 id="bossName" class="font-black text-base text-white">Walhan (Bisikan Penunda Shalat)</h3>
+                        <p class="text-xs text-slate-400 italic">"Nanti saja shalatnya, tidur 5 menit lagi..."</p>
+
+                        <!-- Boss HP Bar -->
+                        <div class="w-full max-w-md bg-slate-900 rounded-full h-4 overflow-hidden border border-rose-500/50 relative">
+                            <div id="bossHpBar" class="bg-gradient-to-r from-rose-600 to-red-400 h-full transition-all duration-300" style="width: 100%"></div>
+                            <span id="bossHpText" class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white">500 / 500 HP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Controls -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <button onclick="executeBossAttack('zikr')" class="py-3 bg-gradient-to-r from-rose-600 to-red-500 hover:brightness-110 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-hand-fist"></i> Tebasan Zikir (-30 HP)
+                    </button>
+                    <button onclick="executeBossAttack('salat')" class="py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Perisai Khusyu' (-100 HP)
+                    </button>
+                    <button onclick="executeBossAttack('tilawah')" class="col-span-2 sm:col-span-1 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:brightness-110 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Panah Tilawah (-60 HP)
+                    </button>
+                </div>
+
+                <!-- Combat Console -->
+                <div id="combatLog" class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-300 h-20 overflow-y-auto">
+                    > Sistem Siap. Pilihlah serangan amalanmu untuk menaklukkan Hawa Nafsu!
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: SHADOW ARMY -->
+        <section id="content-shadows" class="tab-content hidden space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-black text-lg md:text-xl text-sky-400 flex items-center gap-2">
+                        <i class="fa-solid fa-ghost"></i>
+                        <span>Prajurit Bayangan Subuh (Auto-Patrol System)</span>
+                    </h2>
+                    <p class="text-xs text-slate-400">Terapkan Auto-Patrol pada Pasukan Bayangan untuk menghasilkan Koin Hasanah & XP secara otomatis!</p>
+                </div>
+                <div class="bg-sl-card px-3 py-1.5 rounded-xl border border-sky-500/30 text-xs font-bold text-sky-300 self-start">
+                    Total Bayangan: <span id="shadowCountBadge" class="font-black text-white">0</span>
+                </div>
+            </div>
+
+            <div id="shadowArmyContainer" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </section>
+
+        <!-- TAB 6: VIRTUAL TOWN / MASJID SHOP -->
+        <section id="content-village" class="tab-content hidden space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-black text-lg md:text-xl text-white flex items-center gap-2">
+                        <i class="fa-solid fa-mosque text-amber-400"></i>
+                        <span>Pembangunan Kompleks Masjid Virtual</span>
+                    </h2>
+                    <p class="text-xs text-slate-400">Beli dan tingkatkan fasilitas masjid menggunakan Koin Hasanah hasil amalanmu.</p>
+                </div>
+                <div class="bg-sl-card px-3 py-1.5 rounded-xl border border-sl-border text-xs font-bold self-start">
+                    Level Kemegahan: <span id="mosqueGloryLevel" class="text-emerald-400">Level 1</span>
+                </div>
+            </div>
+
+            <div id="shopContainer" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+        </section>
+
+        <!-- TAB 7: TASBIH RPG -->
+        <section id="content-tasbih" class="tab-content hidden space-y-5">
+            <div class="text-center max-w-md mx-auto space-y-1">
+                <h2 class="font-black text-xl text-white">Tasbih Digital Monark</h2>
+                <p class="text-xs text-slate-400">Ketuk layar untuk berzikir. Setiap ketukan memancarkan energi spiritual dan memulihkan Mana MP.</p>
+            </div>
+
+            <div class="max-w-md mx-auto bg-sl-card p-6 rounded-3xl border-2 border-emerald-500/30 space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Pilih Bacaan Zikir</label>
+                    <select id="tasbihPhraseSelect" onchange="changeZikrPhrase()" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-bold text-emerald-300 outline-none">
+                        <option value="Subhanallah">سُبْحَانَ اللَّهِ (Subhanallah)</option>
+                        <option value="Alhamdulillah">الْحَمْدُ لِلَّهِ (Alhamdulillah)</option>
+                        <option value="Allahu Akbar">اللَّهُ أَكْبَرُ (Allahu Akbar)</option>
+                        <option value="Astaghfirullah">أَسْتَغْفِرُ اللَّهَ (Astaghfirullah)</option>
+                        <option value="Shalawat">اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ (Shalawat Nabi)</option>
+                    </select>
+                </div>
+
+                <div class="text-center py-2">
+                    <p id="arabicTextDisplay" class="font-arabic text-3xl font-bold text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">سُبْحَانَ اللَّهِ</p>
+                </div>
+
+                <div class="flex justify-center">
+                    <button id="mainTasbihBtn" onclick="tapTasbih()" class="tasbih-pulse w-48 h-48 rounded-full border-4 border-emerald-400/40 flex flex-col items-center justify-center text-white select-none">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-emerald-200">KETUK ZIKIR</span>
+                        <span id="tasbihCountText" class="text-5xl font-black text-amber-300 my-1">0</span>
+                        <span id="tasbihTargetText" class="text-xs text-emerald-200/80 font-bold">Target: 33</span>
+                    </button>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="resetTasbih()" class="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold transition">Reset</button>
+                    <button id="claimZikrRewardBtn" onclick="claimZikrBonus()" disabled class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black rounded-xl text-xs shadow-lg transition">Klaim Reward</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 8: INVENTORI & ITEM LOADOUT -->
+        <section id="content-inventory" class="tab-content hidden space-y-5">
+            <div>
+                <h2 class="font-black text-lg md:text-xl text-white flex items-center gap-2">
+                    <i class="fa-solid fa-box-archive text-indigo-400"></i>
+                    <span>Inventori Item & Equipment Status</span>
+                </h2>
+                <p class="text-xs text-slate-400">Gunakan item spesial ini untuk menambah bonus atribut statistik Monark milikmu.</p>
+            </div>
+
+            <div id="inventoryContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+        </section>
+
+        <!-- TAB 9: PROFILE STATUS, AWAKENING & JURNAL HIJRAH -->
+        <section id="content-profile" class="tab-content hidden space-y-5">
+            <div class="bg-sl-card p-5 md:p-7 rounded-3xl border border-sl-border space-y-6">
+                
+                <!-- Profile Header -->
+                <div class="flex flex-col sm:flex-row items-center gap-5 pb-5 border-b border-slate-800">
+                    <div class="relative">
+                        <img id="profileCardAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" alt="Profile" class="w-24 h-24 rounded-2xl object-cover border-2 border-sl-neonGreen shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                        <button onclick="showModal('changeAvatarModal')" class="absolute -bottom-2 -right-2 bg-amber-500 text-slate-950 p-2 rounded-xl text-xs font-black shadow-md hover:scale-105 transition">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
+                    </div>
+
+                    <div class="text-center sm:text-left space-y-1">
+                        <h2 id="profileCardName" class="text-xl font-black text-white">Player Name</h2>
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                            <span id="profileCardRank" class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2.5 py-0.5 rounded-full font-black">E-RANK MONARK</span>
+                            <span id="profileCardClass" class="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2.5 py-0.5 rounded-full font-black">Subuh Initiate</span>
+                            <span id="profileCardLevel" class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full font-black">Level 1</span>
+                        </div>
+                        <p class="text-xs text-slate-400 pt-1"><i class="fa-solid fa-database text-sky-400 mr-1"></i> Data Tersimpan di IndexedDB Lokal</p>
+                    </div>
+                </div>
+
+                <!-- Jurnal Spiritual Monark -->
+                <div class="p-4 bg-slate-950/80 rounded-2xl border border-emerald-500/30 space-y-2">
+                    <h4 class="font-black text-xs text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-book-bookmark text-amber-400"></i> Jurnal & Catatan Hijrah
+                    </h4>
+                    <textarea id="journalNotesInput" rows="3" placeholder="Tuliskan komitmen ibadah, refleksi harian, atau doa khususmu..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 outline-none focus:border-emerald-500"></textarea>
+                    <button onclick="saveJournalNotes()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow transition">
+                        Simpan Catatan Jurnal
+                    </button>
+                </div>
+
+                <!-- Class Awakening Section -->
+                <div class="p-4 bg-slate-950/80 rounded-2xl border border-sky-500/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-black text-xs text-sky-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-crown text-amber-400"></i> Class Awakening System
+                        </h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Mencapai Level 5 untuk memilih Class Khusus & Passive Skills Monark.</p>
+                    </div>
+                    <button onclick="triggerAwakeningPrompt()" class="px-4 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:brightness-110 text-white font-black text-xs rounded-xl shadow-lg transition shrink-0">
+                        Pilih Class
+                    </button>
+                </div>
+
+                <!-- Stats RPG Attributes + Allocator -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-black text-xs text-amber-400 uppercase tracking-wider">Atribut Karakter Monark</h3>
+                        <span class="text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full">
+                            Poin AP: <span id="statPointsBadge" class="text-white">0</span>
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase">Taqwa (STR)</div>
+                                <div id="statTaqwa" class="text-base font-black text-emerald-400">10</div>
+                            </div>
+                            <button onclick="allocateStatPoint('taqwa')" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-lg transition shadow">
+                                +1 AP
+                            </button>
+                        </div>
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase">Khusyu' (INT)</div>
+                                <div id="statKhusyu" class="text-base font-black text-sky-400">10</div>
+                            </div>
+                            <button onclick="allocateStatPoint('khusyu')" class="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs rounded-lg transition shadow">
+                                +1 AP
+                            </button>
+                        </div>
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase">Istiqamah (AGI)</div>
+                                <div id="statIstiqamah" class="text-base font-black text-amber-400">10</div>
+                            </div>
+                            <button onclick="allocateStatPoint('istiqamah')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg transition shadow">
+                                +1 AP
+                            </button>
+                        </div>
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase">Ikhlas (VIT)</div>
+                                <div id="statIkhlas" class="text-base font-black text-purple-400">10</div>
+                            </div>
+                            <button onclick="allocateStatPoint('ikhlas')" class="px-3 py-1.5 bg-purple-500 hover:bg-purple-400 text-slate-950 font-black text-xs rounded-lg transition shadow">
+                                +1 AP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Management -->
+                <div class="pt-3 border-t border-slate-800 flex gap-3">
+                    <button onclick="showModal('authModal')" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 transition">
+                        <i class="fa-solid fa-user-lock mr-1"></i> Ganti Akun / Login
+                    </button>
+                    <button onclick="promptResetGame()" class="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/40 transition">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Reset Progress
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR (LENGKAP 9 TAB DENGAN SCROLLING) -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-sl-bg/95 border-t border-sl-border/80 backdrop-blur-xl px-2 py-1.5">
+        <div class="flex items-center overflow-x-auto no-scrollbar gap-1 text-center">
+            <button onclick="switchTab('dashboard')" id="mnav-dashboard" class="mnav-btn active">
+                <i class="fa-solid fa-house text-sm"></i>
+                <span>Markas</span>
+            </button>
+            <button onclick="switchTab('quests')" id="mnav-quests" class="mnav-btn">
+                <i class="fa-solid fa-scroll text-sm text-emerald-400"></i>
+                <span>Misi</span>
+            </button>
+            <button onclick="switchTab('saga')" id="mnav-saga" class="mnav-btn">
+                <i class="fa-solid fa-dungeon text-sm text-purple-400"></i>
+                <span>Gate</span>
+            </button>
+            <button onclick="switchTab('boss')" id="mnav-boss" class="mnav-btn">
+                <i class="fa-solid fa-dragon text-sm text-rose-400"></i>
+                <span>Boss</span>
+            </button>
+            <button onclick="switchTab('shadows')" id="mnav-shadows" class="mnav-btn">
+                <i class="fa-solid fa-ghost text-sm text-sky-400"></i>
+                <span>Bayangan</span>
+            </button>
+            <button onclick="switchTab('village')" id="mnav-village" class="mnav-btn">
+                <i class="fa-solid fa-mosque text-sm text-amber-400"></i>
+                <span>Masjid</span>
+            </button>
+            <button onclick="switchTab('tasbih')" id="mnav-tasbih" class="mnav-btn">
+                <i class="fa-solid fa-hands-praying text-sm text-sky-400"></i>
+                <span>Tasbih</span>
+            </button>
+            <button onclick="switchTab('inventory')" id="mnav-inventory" class="mnav-btn">
+                <i class="fa-solid fa-box-archive text-sm text-indigo-400"></i>
+                <span>Inventori</span>
+            </button>
+            <button onclick="switchTab('profile')" id="mnav-profile" class="mnav-btn">
+                <i class="fa-solid fa-user-gear text-sm text-amber-300"></i>
+                <span>Status</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: SYSTEM CONFIRMATION OVERLAY -->
+    <div id="customConfirmModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-sl-card rounded-3xl max-w-sm w-full p-6 space-y-4 border border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.3)] text-center">
+            <div class="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-2xl mx-auto border border-rose-500/40">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 id="confirmModalTitle" class="font-black text-base text-white">Konfirmasi Sistem</h3>
+                <p id="confirmModalMsg" class="text-xs text-slate-300 mt-1">Apakah Anda yakin ingin melakukan tindakan ini?</p>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="hideModal('customConfirmModal')" class="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 transition">
+                    Batal
+                </button>
+                <button id="confirmModalActionBtn" class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition">
+                    Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AUTHENTICATION -->
+    <div id="authModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-sl-card rounded-3xl max-w-sm w-full p-6 space-y-4 border border-emerald-500/40">
+            <div class="text-center space-y-1">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mx-auto border border-emerald-500/40">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h3 class="font-black text-base text-white">Login / Register Monark</h3>
+                <p class="text-xs text-slate-400">Data tersimpan aman secara lokal di IndexedDB HP/Browser.</p>
+            </div>
+            
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Username Monark</label>
+                    <input type="text" id="authUsername" required placeholder="Masukkan nama hero..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Password Kunci</label>
+                    <input type="password" id="authPassword" required placeholder="******" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 outline-none focus:border-emerald-500">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl transition shadow-lg">
+                    Masuk & Simpan Progress
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CUSTOM AVATAR -->
+    <div id="changeAvatarModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-sl-card rounded-3xl max-w-sm w-full p-6 space-y-4 border border-amber-500/40">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 class="font-black text-sm text-amber-300">Ganti Foto Profil Custom</h3>
+                <button onclick="hideModal('changeAvatarModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">URL Gambar / Foto</label>
+                    <input type="url" id="customAvatarUrlInput" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 outline-none">
+                </div>
+                <div class="text-center text-slate-500 text-[10px] font-bold uppercase">- ATAU PILIH PRESET -</div>
+                <div class="grid grid-cols-4 gap-2">
+                    <img onclick="selectPresetAvatar(this.src)" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" class="w-12 h-12 rounded-xl object-cover cursor-pointer border border-slate-700 hover:border-amber-400">
+                    <img onclick="selectPresetAvatar(this.src)" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" class="w-12 h-12 rounded-xl object-cover cursor-pointer border border-slate-700 hover:border-amber-400">
+                    <img onclick="selectPresetAvatar(this.src)" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80" class="w-12 h-12 rounded-xl object-cover cursor-pointer border border-slate-700 hover:border-amber-400">
+                    <img onclick="selectPresetAvatar(this.src)" src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80" class="w-12 h-12 rounded-xl object-cover cursor-pointer border border-slate-700 hover:border-amber-400">
+                </div>
+                <button onclick="saveCustomAvatar()" class="w-full py-2.5 bg-amber-500 text-slate-950 font-black rounded-xl">Simpan Avatar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOM QUEST -->
+    <div id="customQuestModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-sl-card rounded-3xl max-w-sm w-full p-6 space-y-4 border border-emerald-500/40">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 class="font-black text-sm text-emerald-300">Tambah Misi Sunnah Kustom</h3>
+                <button onclick="hideModal('customQuestModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveCustomQuest(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Nama Amalan Sunnah</label>
+                    <input type="text" id="cqTitle" required placeholder="Contoh: Puasa Senin-Kamis" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-300 mb-1">XP Reward</label>
+                        <input type="number" id="cqXp" min="10" max="200" value="50" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-300 mb-1">Koin Reward</label>
+                        <input type="number" id="cqCoins" min="5" max="100" value="15" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 outline-none">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-emerald-500 text-slate-950 font-black rounded-xl">Simpan Misi</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- GAME JAVASCRIPT MODULES -->
+    <script src="db.js"></script>
+    <script src="boss.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
